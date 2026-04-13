@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS expenses (
     date TEXT
 )
 """)
+# 🔥 ここに入れる
+cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_date ON expenses(date)
+""")
+
 conn.commit()
 
 # モデル
@@ -47,17 +52,11 @@ def root():
 # 🟢 追加
 @app.post("/expense")
 def add_expense(expense: Expense):
-<<<<<<< HEAD
     now = datetime.now().strftime("%Y-%m-%d")
 
     cursor.execute(
         "INSERT INTO expenses (title, amount, date) VALUES (?, ?, ?)",
         (expense.title, expense.amount, now)
-=======
-    cursor.execute(
-        "INSERT INTO expenses (title, amount) VALUES (?, ?)",
-        (expense.title, expense.amount)
->>>>>>> 521af660526286380d893c888f6f8e1caaa1298b
     )
     conn.commit()
     return {"status": "added"}
@@ -65,7 +64,6 @@ def add_expense(expense: Expense):
 # 🟢 一覧
 @app.get("/expenses")
 def get_expenses():
-<<<<<<< HEAD
     cursor.execute("SELECT id, title, amount, date FROM expenses")
     rows = cursor.fetchall()
 
@@ -79,7 +77,8 @@ def get_expenses():
 def delete_expense(expense_id: int):
     cursor.execute("DELETE FROM expenses WHERE id=?", (expense_id,))
     conn.commit()
-    return {"status": "deleted"}
+    return {"status": "deleted"
+            }
 
 # 🟢 月合計（指定）
 @app.get("/expenses/month-total/{year_month}")
@@ -91,7 +90,6 @@ def get_month_total(year_month: str):
 
     total = cursor.fetchone()[0] or 0
     return {"total": total}
-=======
     cursor.execute("SELECT title, amount FROM expenses")
     rows = cursor.fetchall()
     return [{"title": r[0], "amount": r[1]} for r in rows]
@@ -110,12 +108,19 @@ import sqlite3
 conn = sqlite3.connect("data.db", check_same_thread=False)
 cursor = conn.cursor()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT,
-    amount INTEGER
-)
-""")
-conn.commit()
->>>>>>> 521af660526286380d893c888f6f8e1caaa1298b
+@app.get("/expenses/daily")
+def get_daily_expenses(year_month: str):
+    cursor.execute("""
+        SELECT date, SUM(amount)
+        FROM expenses
+        WHERE date LIKE ?
+        GROUP BY date
+        ORDER BY date
+    """, (f"{year_month}%",))
+
+    rows = cursor.fetchall()
+
+    return [
+        {"date": r[0], "total": r[1]}
+        for r in rows
+    ]

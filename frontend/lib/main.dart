@@ -31,6 +31,7 @@ class ExpensePage extends StatefulWidget {
 class _ExpensePageState extends State<ExpensePage> {
   final titleController = TextEditingController();
   final amountController = TextEditingController();
+<<<<<<< HEAD
 
   List<dynamic> expenses = [];
   int monthlyTotal = 0;
@@ -97,6 +98,58 @@ class _ExpensePageState extends State<ExpensePage> {
         monthlyTotal = data["total"] ?? 0;
       });
     }
+=======
+
+  List<dynamic> expenses = [];
+
+Future<void> addExpense() async {
+  final title = titleController.text;
+  final amountText = amountController.text;
+
+  // 入力チェック
+  if (title.isEmpty || amountText.isEmpty) {
+    return;
+  }
+
+  final amount = int.tryParse(amountText);
+  if (amount == null) {
+    return;
+  }
+
+  try {
+    await http.post(
+      Uri.parse('http://10.0.2.2:8000/expense'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "title": title,
+        "amount": amount,
+      }),
+    );
+
+    titleController.clear();
+    amountController.clear();
+
+    fetchExpenses(); // 更新
+  } catch (e) {
+    print("Error: $e");
+  }
+}
+
+  Future<void> fetchExpenses() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/expenses'),
+    );
+
+    setState(() {
+      expenses = jsonDecode(response.body);
+    });
+>>>>>>> 521af660526286380d893c888f6f8e1caaa1298b
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchExpenses();
   }
 
   @override
@@ -107,10 +160,38 @@ class _ExpensePageState extends State<ExpensePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+<<<<<<< HEAD
             // 入力
             TextField(
               controller: titleController,
               decoration: const InputDecoration(labelText: 'タイトル'),
+=======
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'タイトル'),
+            ),
+            TextField(
+              controller: amountController,
+              decoration: const InputDecoration(labelText: '金額'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: addExpense,
+              child: const Text('追加'),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: expenses.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(expenses[index]["title"]),
+                    trailing: Text("¥${expenses[index]["amount"]}"),
+                  );
+                },
+              ),
+>>>>>>> 521af660526286380d893c888f6f8e1caaa1298b
             ),
             TextField(
               controller: amountController,

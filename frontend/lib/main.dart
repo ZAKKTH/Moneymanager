@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -7,115 +9,216 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: '家計簿アプリ',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const ExpensePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class ExpensePage extends StatefulWidget {
+  const ExpensePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<ExpensePage> createState() => _ExpensePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _ExpensePageState extends State<ExpensePage> {
+  final titleController = TextEditingController();
+  final amountController = TextEditingController();
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  List<dynamic> expenses = [];
+  int monthlyTotal = 0;
+  String selectedMonth = "";
+
+  String getCurrentMonth() {
+    final now = DateTime.now();
+    return "${now.year}-${now.month.toString().padLeft(2, '0')}";
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    selectedMonth = getCurrentMonth();
+    fetchExpenses();
+    fetchMonthlyTotal(selectedMonth);
+  }
+
+  // 🟢 追加
+  Future<void> addExpense() async {
+    final title = titleController.text;
+    final amount = int.tryParse(amountController.text);
+
+    if (title.isEmpty || amount == null) return;
+
+    await http.post(
+      Uri.parse('http://10.0.2.2:8000/expense'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "title": title,
+        "amount": amount,
+      }),
+    );
+
+    titleController.clear();
+    amountController.clear();
+
+    fetchExpenses();
+    fetchMonthlyTotal(selectedMonth);
+  }
+
+  // 🟢 一覧取得
+  Future<void> fetchExpenses() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/expenses'),
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        expenses = jsonDecode(response.body);
+      });
+    }
+  }
+
+  // 🟢 月合計
+  Future<void> fetchMonthlyTotal(String month) async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/expenses/month-total/$month'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        monthlyTotal = data["total"] ?? 0;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      appBar: AppBar(title: const Text('家計簿')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            // 入力
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'タイトル'),
             ),
+            TextField(
+              controller: amountController,
+              decoration: const InputDecoration(labelText: '金額'),
+              keyboardType: TextInputType.number,
+            ),
+
+            ElevatedButton(
+              onPressed: addExpense,
+              child: const Text('追加'),
+            ),
+
+            // 月切り替え
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    final parts = selectedMonth.split("-");
+                    int y = int.parse(parts[0]);
+                    int m = int.parse(parts[1]);
+
+                    m--;
+                    if (m == 0) {
+                      m = 12;
+                      y--;
+                    }
+
+                    selectedMonth =
+                        "$y-${m.toString().padLeft(2, '0')}";
+                    fetchMonthlyTotal(selectedMonth);
+                    setState(() {});
+                  },
+                ),
+                Text(selectedMonth),
+                IconButton(
+                  icon: const Icon(Icons.arrow_forward),
+                  onPressed: () {
+                    final parts = selectedMonth.split("-");
+                    int y = int.parse(parts[0]);
+                    int m = int.parse(parts[1]);
+
+                    m++;
+                    if (m == 13) {
+                      m = 1;
+                      y++;
+                    }
+
+                    selectedMonth =
+                        "$y-${m.toString().padLeft(2, '0')}";
+                    fetchMonthlyTotal(selectedMonth);
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+
+            Text("今月の合計: ¥$monthlyTotal"),
+
+            // 一覧
+            Expanded(
+  child: expenses.isEmpty
+      ? const Center(child: Text("データなし"))
+      : ListView.builder(
+          itemCount: expenses.length,
+          itemBuilder: (context, index) {
+            final item = expenses[index];
+
+            return Card(
+              child: ListTile(
+                title: Text(item["title"] ?? "タイトルなし"),
+                subtitle: Text(item["date"] ?? "日付なし"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "¥${item["amount"]}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () async {
+                        final response = await http.delete(
+                          Uri.parse(
+                            'http://10.0.2.2:8000/expense/${item["id"]}',
+                          ),
+                        );
+
+                        if (response.statusCode == 200) {
+                          await fetchExpenses();
+                          await fetchMonthlyTotal(selectedMonth);
+                        } else {
+                          print("削除失敗: ${response.body}");
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }

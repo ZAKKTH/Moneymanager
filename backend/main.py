@@ -32,7 +32,15 @@ CREATE TABLE IF NOT EXISTS expenses (
     date TEXT
 )
 """)
-# 🔥 ここに入れる
+
+# 🔥 category追加（安全版）
+try:
+    cursor.execute("ALTER TABLE expenses ADD COLUMN category TEXT")
+    conn.commit()
+except:
+    pass  # 既にあれば無視
+
+# 🔥 インデックス
 cursor.execute("""
 CREATE INDEX IF NOT EXISTS idx_date ON expenses(date)
 """)
@@ -43,6 +51,7 @@ conn.commit()
 class Expense(BaseModel):
     title: str
     amount: int
+    category: str   # 🔥追加
 
 # ルート確認
 @app.get("/")
@@ -54,21 +63,32 @@ def root():
 def add_expense(expense: Expense):
     now = datetime.now().strftime("%Y-%m-%d")
 
+    cursor = conn.cursor()
+
     cursor.execute(
-        "INSERT INTO expenses (title, amount, date) VALUES (?, ?, ?)",
-        (expense.title, expense.amount, now)
-    )
+    "INSERT INTO expenses (title, amount, date, category) VALUES (?, ?, ?, ?)",
+    (expense.title, expense.amount, now, expense.category)
+)
     conn.commit()
+
     return {"status": "added"}
 
 # 🟢 一覧
 @app.get("/expenses")
 def get_expenses():
-    cursor.execute("SELECT id, title, amount, date FROM expenses")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, title, amount, date, category FROM expenses")
     rows = cursor.fetchall()
 
     return [
-        {"id": r[0], "title": r[1], "amount": r[2], "date": r[3]}
+        {
+            "id": r[0],
+            "title": r[1],
+            "amount": r[2],
+            "date": r[3],
+            "category": r[4]
+        }
         for r in rows
     ]
 
@@ -80,9 +100,11 @@ def delete_expense(expense_id: int):
     return {"status": "deleted"
             }
 
-# 🟢 月合計（指定）
+# 🟢 月集合（指定）
 @app.get("/expenses/month-total/{year_month}")
 def get_month_total(year_month: str):
+    cursor = conn.cursor()
+
     cursor.execute(
         "SELECT SUM(amount) FROM expenses WHERE date LIKE ?",
         (f"{year_month}%",)
@@ -90,11 +112,6 @@ def get_month_total(year_month: str):
 
     total = cursor.fetchone()[0] or 0
     return {"total": total}
-    cursor.execute("SELECT title, amount FROM expenses")
-    rows = cursor.fetchall()
-    return [{"title": r[0], "amount": r[1]} for r in rows]
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -103,10 +120,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-import sqlite3
-
-conn = sqlite3.connect("data.db", check_same_thread=False)
-cursor = conn.cursor()
 
 @app.get("/expenses/daily")
 def get_daily_expenses(year_month: str):

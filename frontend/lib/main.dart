@@ -40,6 +40,99 @@ class _ExpensePageState extends State<ExpensePage> {
   List<dynamic> categories = [];
   Map<String, int> budget = {};
   String selectedCategory = "未分類";
+
+  DateTime selectedDate = DateTime.now();
+
+  Widget buildSegmentedBar(Map<String, int> categoryTotals) {
+  final total = categoryTotals.values.fold(0, (a, b) => a + b);
+
+  if (total == 0) {
+    return const Text("データなし");
+  }
+
+  const threshold = 0.05;
+
+  final colors = [
+    Colors.blue,
+    Colors.green,
+    Colors.orange,
+    Colors.red,
+    Colors.purple,
+    Colors.teal,
+  ];
+
+  final entries = categoryTotals.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+
+  List<Map<String, dynamic>> visible = [];
+  List<Map<String, dynamic>> hidden = [];
+
+  int i = 0;
+
+  for (var e in entries) {
+    final ratio = e.value / total;
+
+    final item = {
+      "name": e.key,
+      "value": e.value,
+      "ratio": ratio,
+      "color": colors[i++ % colors.length],
+    };
+
+    if (ratio >= threshold) {
+      visible.add(item);
+    } else {
+      hidden.add(item);
+    }
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text("今月の支出内訳",
+          style: TextStyle(fontWeight: FontWeight.bold)),
+
+      const SizedBox(height: 8),
+
+      Row(
+        children: visible.map((e) {
+          return Expanded(
+            flex: (e["ratio"] * 1000).toInt(),
+            child: Container(
+              height: 20,
+              color: e["color"],
+            ),
+          );
+        }).toList(),
+      ),
+
+      const SizedBox(height: 8),
+
+      Wrap(
+        spacing: 10,
+        runSpacing: 5,
+        children: visible.map((e) {
+          final percent = (e["ratio"] * 100).toStringAsFixed(1);
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 10, height: 10, color: e["color"]),
+              const SizedBox(width: 4),
+              Text("${e["name"]} ¥${e["value"]} ($percent%)"),
+            ],
+          );
+        }).toList(),
+      ),
+
+      if (hidden.isNotEmpty)
+        Text(
+          "その他: " + hidden.map((e) => e["name"]).join(", "),
+          style: const TextStyle(color: Colors.grey),
+        ),
+    ],
+  );
+}
   
   
   Future<void> fetchCategories() async {
@@ -97,6 +190,7 @@ Future<void> addExpense() async {
       "title": title,
       "amount": amount,
       "category": category,
+      "date": selectedDate.toIso8601String().split("T")[0],
     }),
   );
 
@@ -258,6 +352,45 @@ Future<void> addExpense() async {
                       decoration: const InputDecoration(labelText: '金額'),
                       keyboardType: TextInputType.number,
                     ),
+                    Row(
+                      children: [
+                        Text(
+                          "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
+                        ),
+                        const SizedBox(width: 10),
+
+                        ElevatedButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+
+                            if (picked != null) {
+                              setState(() {
+                                selectedDate = picked;
+                              });
+                            }
+                          },
+                          child: const Text("日付選択"),
+                        ),
+
+                        const SizedBox(width: 5),
+
+                        // 🔥 ワンタップ昨日
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedDate =
+                                  DateTime.now().subtract(const Duration(days: 1));
+                            });
+                          },
+                          child: const Text("昨日"),
+                        ),
+                      ],
+                    ),
                     categories.isEmpty
                   ? const Text("カテゴリなし")
                   : DropdownButton<String>(
@@ -293,6 +426,10 @@ Future<void> addExpense() async {
                     ),
 
                     Text("今月の合計: ¥$monthlyTotal"),
+
+                    const Divider(),
+
+                    buildSegmentedBar(categoryTotals), // 🔥ここ追加
 
                     const Divider(),
 

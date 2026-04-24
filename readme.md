@@ -25,4 +25,5 @@ Flutter + FastAPIで作成した家計管理アプリ
 ## ⚙️ 技術スタック
 - Frontend: Flutter  
 - Backend: FastAPI  
-- DB: SQLite  
+- DB: SQLite
+- FreamWork:Android Stadio(pandas2)

@@ -26,4 +26,4 @@ Flutter + FastAPIで作成した家計管理アプリ
 - Frontend: Flutter  
 - Backend: FastAPI  
 - DB: SQLite
-- FreamWork:Android Stadio(pandas2)
+- environment:Android Stadio(pandas2)

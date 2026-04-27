@@ -15,6 +15,7 @@ Flutter + FastAPIで作成した家計管理アプリ
 ---
 
 ## 🧠 特徴
+<<<<<<< HEAD
 
 ### 📊 カテゴリごとの予算管理
 <img src="screenshots/Screenshot3.png" width="45%" />
@@ -30,6 +31,13 @@ Flutter + FastAPIで作成した家計管理アプリ
 ### 📈 使用率の可視化（ProgressBar）
 <img src="screenshots/Screenshot1.png" width="50%" />
 
+=======
+<p align="center">
+  <img src="screenshots/Screenshot3.png" width="30%" />
+  <img src="screenshots/Screenshot2.png" width="30%" />
+  <img src="screenshots/Screenshot1.png" width="30%" />
+</p>
+>>>>>>> cb29119bc6fb8038149921826924036df405befe
 ---
 
 ## ⚙️ 技術スタック

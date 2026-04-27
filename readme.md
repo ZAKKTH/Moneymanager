@@ -20,6 +20,7 @@ Flutter + FastAPIで作成した家計管理アプリ
   <img src="screenshots/Screenshot2.png" width="30%" />
   <img src="screenshots/Screenshot1.png" width="30%" />
 </p>
+
 ---
 
 ## ⚙️ 技術スタック

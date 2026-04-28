@@ -38,4 +38,13 @@ class ApiService {
       body: jsonEncode(data),
     );
   }
+    static Future<void> deleteCategory(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/categories/$id'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("カテゴリ削除失敗: ${response.body}");
+    }
+  }
 }

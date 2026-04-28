@@ -15,4 +15,4 @@ build/
 Thumbs.db
 
 # SQLite DB
-backend/data.db
+./backend/data.db

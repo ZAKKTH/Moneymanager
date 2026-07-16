@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../widgets/segmented_bar.dart';
 import '../widgets/category_dialog.dart';
+import '../pages/category_bar_chart_page.dart';
 
 
 
@@ -77,7 +78,17 @@ Future<void> addExpense() async {
           )
         ],
       ),
-
+    floatingActionButton: FloatingActionButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CategoryBarChartPage(),
+          ),
+        );
+      },
+      child: const Icon(Icons.bar_chart),
+    ),
       body: Column(
         children: [
           Padding(
@@ -120,7 +131,7 @@ Future<void> addExpense() async {
                   },
                   decoration: const InputDecoration(labelText: "カテゴリ"),
                 ),
-
+  
                 const SizedBox(height: 8),
 
                 ElevatedButton(
@@ -142,7 +153,7 @@ Future<void> addExpense() async {
                 final item = expenses[i];
 
                 final category = item["category"] ?? "未分類";
-                // final amount = item["amount"] as int; #dead code !
+                final amount = item["amount"] ?? 0;
                 final title = item["title"] ?? "";
 
                 final date = item["date"] ?? "";
@@ -190,6 +201,13 @@ Future<void> addExpense() async {
 
                         // 💰 予算 & 残高
                         Text("予算: ¥$budget"),
+                        Text(
+                          "¥$amount",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         Text("残高: ¥$remaining"),
 
                         const SizedBox(height: 6),
